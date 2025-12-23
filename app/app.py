@@ -11,7 +11,8 @@ st.set_page_config(
     layout="wide"
 )
 
-DATA_DIR = "/home/truji/Desktop/streamlit_app/limpio"
+DATA_DIR = "limpio"
+# DATA_DIR = "/home/truji/Desktop/streamlit_app/limpio" 
 
 # ==============================================================
 # MÍNIMAS POR CATEGORÍA (EDITA LIBREMENTE)
