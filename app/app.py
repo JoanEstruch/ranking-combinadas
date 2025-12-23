@@ -11,21 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Ruta local (tu ordenador)
-LOCAL_DIR = "/home/truji/Desktop/streamlit_app/limpio"
-
-# Ruta servidor (GitHub / Streamlit Cloud)
-CLOUD_DIR = "limpio"
-
-# Elegir según dónde exista
-if os.path.exists(LOCAL_DIR):
-    DATA_DIR = LOCAL_DIR
-else:
-    DATA_DIR = CLOUD_DIR
-
-
-# DATA_DIR = "limpio"
-# DATA_DIR = "/home/truji/Desktop/streamlit_app/limpio" 
+DATA_DIR = "limpio"   # Streamlit Cloud usa rutas relativas
 
 # ==============================================================
 # MÍNIMAS POR CATEGORÍA (EDITA LIBREMENTE)
@@ -59,80 +45,6 @@ MENSAJES = {
     "ABSF": ""
 }
 
-def df_to_html(df, mini, repesca):
-    def color_style(puntos):
-        if puntos >= mini:
-            return 'style="color: green; font-weight:bold;"'
-        elif puntos >= repesca:
-            return 'style="color: orange; font-weight:bold;"'
-        else:
-            return ''
-
-    html = """
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 16px;
-        }
-        th {
-            text-align: left;
-            border-bottom: 2px solid #aaa;
-            padding: 6px;
-            background-color: #f5f5f5;
-        }
-        td {
-            padding: 6px;
-            border-bottom: 1px solid #ddd;
-        }
-        tr:hover td {
-            background-color: #fafafa;
-        }
-    </style>
-    """
-
-    html += "<table>"
-
-    # -------------------------
-    # ENCABEZADOS
-    # -------------------------
-    html += "<tr>"
-    for col in df.columns:
-        html += f"<th>{col}</th>"
-    html += "</tr>"
-
-    # -------------------------
-    # FILAS
-    # -------------------------
-    for _, row in df.iterrows():
-
-        estilo = color_style(row["Puntos Totales"])
-
-        html += "<tr>"
-        for col in df.columns:
-            valor = row[col]
-
-            # Formato: puntos totales → enteros
-            if col == "Puntos Totales":
-                valor = int(valor)
-
-            # Formato: pruebas → 2 decimales (solo si no es un tiempo)
-            elif isinstance(valor, (int, float)):
-                valor = f"{valor:.2f}"
-
-            # Respetar marca tipo "m:ss.xx"
-            if isinstance(valor, str) and ":" in valor:
-                pass
-
-            html += f"<td {estilo}>{valor}</td>"
-
-        html += "</tr>"
-
-    html += "</table>"
-    return html
-
-
-
 # ==============================================================
 # SIDEBAR – NAVEGACIÓN
 # ==============================================================
@@ -153,9 +65,9 @@ if page == "🏠 Inicio":
     st.markdown("""
     Bienvenido/a al **Ranking NO oficial de Pruebas Combinadas**.
 
-    - 📊 Ranking actualizado según resultados oficiales
-    - 🏟️ Competiciones válidas
-    - 📈 Análisis por categoría
+    - 📊 Ranking actualizado según resultados oficiales  
+    - 🏟️ Competiciones válidas  
+    - 📈 Análisis por categoría  
 
     Usa el menú lateral para navegar.
     """)
@@ -183,11 +95,12 @@ elif page == "📊 Ranking":
     st.title("🏅 Ranking Nacional – Pruebas Combinadas")
 
     # ----------------------------------------------------------
-    # DETECTAR ARCHIVOS
+    # DETECTAR ARCHIVOS DISPONIBLES
     # ----------------------------------------------------------
     all_files = [f for f in os.listdir(DATA_DIR) if f.endswith("_master_limpio.csv")]
     categorias = [f.replace("_master_limpio.csv", "") for f in all_files]
 
+    # ORDEN coherente
     ORDER = [
         "U16F", "U16M",
         "U18F", "U18M",
@@ -197,14 +110,21 @@ elif page == "📊 Ranking":
     ]
     categorias_ordenadas = [c for c in ORDER if c in categorias]
 
+    # ----------------------------------------------------------
+    # SELECCIÓN DE CATEGORÍA
+    # ----------------------------------------------------------
     st.sidebar.title("📁 Categoría")
-    selected_cat = st.sidebar.radio("Elige categoría:", categorias_ordenadas)
+
+    selected_cat = st.sidebar.radio(
+        "Elige categoría:",
+        categorias_ordenadas
+    )
 
     selected_file = f"{selected_cat}_master_limpio.csv"
     full_path = os.path.join(DATA_DIR, selected_file)
 
     # ----------------------------------------------------------
-    # MOSTRAR MÍNIMAS
+    # MÍNIMAS
     # ----------------------------------------------------------
     if selected_cat in MINIMAS:
         mini = MINIMAS[selected_cat]["mínima"]
@@ -220,69 +140,37 @@ elif page == "📊 Ranking":
         if mensaje.strip():
             st.success(f"🔔 {mensaje}")
 
-    # ----------------------------------------------------------
-    # CARGAR ARCHIVO
+        # ----------------------------------------------------------
+    # CARGAR ARCHIVO + MOSTRAR TABLA (SIN COLORES NI STYLE)
     # ----------------------------------------------------------
     try:
         df = pd.read_csv(full_path, encoding="utf-8")
 
         st.subheader(f"📊 Ranking {selected_cat}")
 
-        # Convertir puntos totales SOLO a enteros
+        # Formatear Puntos Totales como entero
         df["Puntos Totales"] = pd.to_numeric(df["Puntos Totales"], errors="coerce").fillna(0).astype(int)
 
-        # Construir tabla HTML con estilo profesional
-        html_table = df_to_html(df, mini, repesca)
-
-        # Mostrar tabla HTML (compatible móvil + estilos personalizados)
-        st.html(html_table, height=900)
-
-        # --------------------------------------------
-        # FORMATO: DECIMALES SOLO EN PRUEBAS TÉCNICAS
-        # --------------------------------------------
+        # Columnas de pruebas técnicas → formatear a 2 decimales
         columnas_pruebas = [
             col for col in df.columns
             if col not in ["Ranking", "Puntos Totales", "Nombre", "Licencia",
                            "cat", "Nacimiento", "Club", "Competición", "Fecha Competición"]
         ]
 
-        def format_decimal(valor):
-            try:
-                # Si es formato tiempo "m:ss.xx" → NO tocar
-                if ":" in str(valor):
-                    return valor
-                return f"{float(valor):.2f}"
-            except:
-                return valor
+        # Formatear manualmente las columnas técnicas
+        for col in columnas_pruebas:
+            df[col] = df[col].apply(lambda x: x if isinstance(x, str) and ":" in x else f"{float(x):.2f}" if str(x).replace('.','',1).isdigit() else x)
 
-        # Diccionario de formato para st.dataframe()
-        format_dict = {"Puntos Totales": "{:.0f}"}
-        format_dict.update({col: format_decimal for col in columnas_pruebas})
-
-        # --------------------------------------------
-        # COLOR SOLO EN EL TEXTO  (NO fondo)
-        # --------------------------------------------
-        def color_text(row):
-            puntos = row["Puntos Totales"]
-            if puntos >= mini:
-                color = "color: green; font-weight: bold;"
-            elif puntos >= repesca:
-                color = "color: orange; font-weight: bold;"
-            else:
-                color = ""
-            return [color] * len(row)
-
+        # Ocultar índice real
         df = df.reset_index(drop=True)
-        df.index = df.index + 1  # si quieres empezar en 1 en lugar de 0
 
-        
-        styled = (
-            df.style
-            .apply(color_text, axis=1)
-            .format(format_dict)
+        # Mostrar tabla sin style
+        st.dataframe(
+            df,
+            use_container_width=True,
+            height=900
         )
-
-        st.dataframe(styled, use_container_width=True, height=900, hide_index=True)
 
     except Exception as e:
         st.error(f"❌ Error al cargar el archivo: {e}")
