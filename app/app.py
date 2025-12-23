@@ -59,6 +59,80 @@ MENSAJES = {
     "ABSF": ""
 }
 
+def df_to_html(df, mini, repesca):
+    def color_style(puntos):
+        if puntos >= mini:
+            return 'style="color: green; font-weight:bold;"'
+        elif puntos >= repesca:
+            return 'style="color: orange; font-weight:bold;"'
+        else:
+            return ''
+
+    html = """
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+        th {
+            text-align: left;
+            border-bottom: 2px solid #aaa;
+            padding: 6px;
+            background-color: #f5f5f5;
+        }
+        td {
+            padding: 6px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:hover td {
+            background-color: #fafafa;
+        }
+    </style>
+    """
+
+    html += "<table>"
+
+    # -------------------------
+    # ENCABEZADOS
+    # -------------------------
+    html += "<tr>"
+    for col in df.columns:
+        html += f"<th>{col}</th>"
+    html += "</tr>"
+
+    # -------------------------
+    # FILAS
+    # -------------------------
+    for _, row in df.iterrows():
+
+        estilo = color_style(row["Puntos Totales"])
+
+        html += "<tr>"
+        for col in df.columns:
+            valor = row[col]
+
+            # Formato: puntos totales → enteros
+            if col == "Puntos Totales":
+                valor = int(valor)
+
+            # Formato: pruebas → 2 decimales (solo si no es un tiempo)
+            elif isinstance(valor, (int, float)):
+                valor = f"{valor:.2f}"
+
+            # Respetar marca tipo "m:ss.xx"
+            if isinstance(valor, str) and ":" in valor:
+                pass
+
+            html += f"<td {estilo}>{valor}</td>"
+
+        html += "</tr>"
+
+    html += "</table>"
+    return html
+
+
+
 # ==============================================================
 # SIDEBAR – NAVEGACIÓN
 # ==============================================================
@@ -156,6 +230,12 @@ elif page == "📊 Ranking":
 
         # Convertir puntos totales SOLO a enteros
         df["Puntos Totales"] = pd.to_numeric(df["Puntos Totales"], errors="coerce").fillna(0).astype(int)
+
+        # Construir tabla HTML con estilo profesional
+        html_table = df_to_html(df, mini, repesca)
+
+        # Mostrar tabla HTML (compatible móvil + estilos personalizados)
+        st.html(html_table, height=900)
 
         # --------------------------------------------
         # FORMATO: DECIMALES SOLO EN PRUEBAS TÉCNICAS
