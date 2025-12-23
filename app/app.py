@@ -11,7 +11,20 @@ st.set_page_config(
     layout="wide"
 )
 
-DATA_DIR = "limpio"
+# Ruta local (tu ordenador)
+LOCAL_DIR = "/home/truji/Desktop/streamlit_app/limpio"
+
+# Ruta servidor (GitHub / Streamlit Cloud)
+CLOUD_DIR = "limpio"
+
+# Elegir según dónde exista
+if os.path.exists(LOCAL_DIR):
+    DATA_DIR = LOCAL_DIR
+else:
+    DATA_DIR = CLOUD_DIR
+
+
+# DATA_DIR = "limpio"
 # DATA_DIR = "/home/truji/Desktop/streamlit_app/limpio" 
 
 # ==============================================================
