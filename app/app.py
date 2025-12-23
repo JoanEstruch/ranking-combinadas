@@ -172,5 +172,11 @@ elif page == "📊 Ranking":
             height=900
         )
 
+        # Mostrar tabla en HTML (compatible móvil)
+        st.write(
+            df.to_html(index=False),
+            unsafe_allow_html=True
+        )
+
     except Exception as e:
         st.error(f"❌ Error al cargar el archivo: {e}")
