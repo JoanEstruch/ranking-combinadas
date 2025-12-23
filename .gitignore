@@ -1,0 +1,17 @@
+# Carpetas que NO quiero subir
+bruto/
+limpio/
+__pycache__/
+venv/
+*.csv
+*.xlsx
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Streamlit cache
+.streamlit/
+
+# Linux basura
+.DS_Store
